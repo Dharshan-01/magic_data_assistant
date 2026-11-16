@@ -1,0 +1,62 @@
+# ==============================================================================
+# Git Ignore - Magic Data Assistant
+# ==============================================================================
+
+# Environment variables & secrets (CRITICAL: Never commit credentials)
+.env
+.env.*
+!.env.example
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# User Uploaded Data & Test Datasets (Keep samples/ intact)
+*.csv
+*.xlsx
+*.xls
+*.jsonl
+!samples/*.csv
+!samples/*.xlsx
+
+# Temporary test generated files
+employees.csv
+salaries.xlsx
+lifecycle_test.csv
+complex_business_report.xlsx
+user_*_data.csv
+*.tmp
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
