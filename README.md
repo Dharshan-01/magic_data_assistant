@@ -119,6 +119,8 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 | `GET` | `/` | Web UI frontend |
 | `GET` | `/health` | Production health check (database connection & LLM status) |
 | `GET` | `/tables/` | List all active tables currently stored in the database |
+| `DELETE` | `/tables/{table_name}` | Drop a specific dataset table from the database |
+| `DELETE` | `/tables/` | Drop all user dataset tables from the database |
 | `POST` | `/upload-file/` | Upload `.csv` or `.xlsx` file for automatic database ingestion |
 | `POST` | `/chat/` | Ask questions with conversation history and table context |
 

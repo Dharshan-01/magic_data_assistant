@@ -633,6 +633,70 @@ async def list_tables():
         return {"tables": [], "warning": f"Database temporarily unavailable: {str(e)}"}
 
 
+@app.delete("/tables/{table_name}")
+async def delete_table(table_name: str):
+    """Safely drops a specific user-uploaded table from PostgreSQL."""
+    db_url = get_db_url()
+    if not db_url:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection string is not configured."
+        )
+
+    sanitized_table = re.sub(r'[^a-zA-Z0-9_]+', '_', table_name).lower().strip('_')
+    if not sanitized_table:
+        raise HTTPException(status_code=400, detail="Invalid table name.")
+
+    try:
+        with psycopg.connect(db_url, autocommit=True, connect_timeout=5) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT 1 FROM pg_catalog.pg_tables WHERE schemaname = 'public' AND tablename = %s;",
+                    (sanitized_table,)
+                )
+                if not cur.fetchone():
+                    raise HTTPException(status_code=404, detail=f"Table '{sanitized_table}' not found in database.")
+
+                cur.execute(f'DROP TABLE IF EXISTS "{sanitized_table}" CASCADE;')
+                logger.info(f"Dropped table: '{sanitized_table}'")
+
+        return {"message": f"Dataset table '{sanitized_table}' deleted successfully.", "deleted_table": sanitized_table}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error dropping table '{sanitized_table}': {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete table: {str(e)}")
+
+
+@app.delete("/tables/")
+async def delete_all_tables():
+    """Drops all user tables currently in the public schema."""
+    db_url = get_db_url()
+    if not db_url:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection string is not configured."
+        )
+
+    try:
+        dropped_tables = []
+        with psycopg.connect(db_url, autocommit=True, connect_timeout=5) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public' ORDER BY tablename;")
+                tables = [row[0] for row in cur.fetchall()]
+                for tbl in tables:
+                    sanitized = re.sub(r'[^a-zA-Z0-9_]+', '_', tbl).lower().strip('_')
+                    if sanitized:
+                        cur.execute(f'DROP TABLE IF EXISTS "{sanitized}" CASCADE;')
+                        dropped_tables.append(sanitized)
+                logger.info(f"Dropped all tables: {dropped_tables}")
+
+        return {"message": f"Deleted {len(dropped_tables)} tables.", "deleted_tables": dropped_tables}
+    except Exception as e:
+        logger.error(f"Error dropping all tables: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to clear tables: {str(e)}")
+
+
 @app.post("/upload-file/")
 async def upload_file(file: UploadFile = File(...)):
     """Uploads and ingests a CSV or multi-sheet Excel file into PostgreSQL tables."""
